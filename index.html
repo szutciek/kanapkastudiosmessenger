@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html>
-    <body>
-        <input type="text" id='input'>
-        <button>Send Fetch</button>
-    </body>
-    <script>
-        async function goFetch() {
-            var req = await fetch('/' + document.getElementById('input').value, {
-                method: 'GET',
-            })
-        }
-        const socket = new WebSocket('ws://localhost:8008')
-        // what kind of data can be emited
-        socket.addEventListener('message', (event) => {
-            console.log(event.data);
-        })
-    </script>
+  <body>
+    <input type="text" id="input" />
+    <button>Send Fetch</button>
+  </body>
+  <script>
+    async function goFetch() {
+      var req = await fetch("/" + document.getElementById("input").value, {
+        method: "GET",
+      });
+    }
+    const socket = new WebSocket("ws://localhost:7777");
+    // what kind of data can be emited
+    socket.addEventListener("message", (event) => {
+      console.log(event.data);
+    });
+  </script>
 </html>
