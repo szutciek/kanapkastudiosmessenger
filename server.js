@@ -2,14 +2,19 @@ const express = require("express");
 const app = express();
 const path = require("path");
 
+app.use(express.static(__dirname));
+app.use(express.json());
+
 const WebSocket = require("ws");
 const wss = new WebSocket.Server({ port: 7777 });
 
 wss.on("connection", (ws) => {
     console.log("content");
     ws.send('jfoisjfiodjfdosi')
-    ws.on('message', (ws) => {
-        console.log(ws)
+    ws.on('message', (data) => {
+        console.log('message recieved')
+        console.log(data.toString());
+        ws.emit("dick");
     });
     ws.emit(JSON.stringify({ data: "suck cock" }))
 });
