@@ -1,26 +1,21 @@
 <!DOCTYPE html>
 <html>
 
+<head>
+    <link rel="stylesheet" href="indStyle.css">
+    <script src="net.js"></script>
+    <title>Kanapka Messenger</title>
+</head>
+
 <body>
-    <input type="text" id="input" />
-    <button onclick="goFetch()">Send Fetch</button>
+    <div class="pane">
+        <div id="output"></div>
+        <div class="inputPane">
+            <input type="text" id="input">
+            <button class="sendbutton" onclick="sendMessage(); document.getElementById('input').value = '';">Send</button>
+        </div>
+    </div>
+
 </body>
-<script>
-    const socket = new WebSocket("ws://localhost:7777");
-
-    function goFetch() {
-        socket.send(document.getElementById("input").value);
-    }
-
-    socket.addEventListener("message", (data) => {
-        console.log('doskdoas');
-        console.log(data.toString());
-    });
-
-    socket.addEventListener("open", (event) => {
-        console.log("cyka");
-        socket.send('balls');
-    })
-</script>
 
 </html>
