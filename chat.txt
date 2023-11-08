@@ -1,1 +1,0 @@
-{"chat":[{"user":"none","message":"did"},{"user":"none","message":""}]}
