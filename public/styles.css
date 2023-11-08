@@ -1,0 +1,141 @@
+body {
+    background-color: #202026;
+}
+
+.container-flex {
+    display: flex;
+}
+
+container {
+    display: flex;
+    width: 5rem;
+    height: 2rem;
+    border: #303036 0.1rem solid;
+    border-radius: 0.3rem;
+    -webkit-border-radius: 0.3rem;
+    -moz-border-radius: 0.3rem;
+    -ms-border-radius: 0.3rem;
+    -o-border-radius: 0.3rem;
+}
+
+container.chatView {
+    width: calc(80vw - 3rem);
+    height: calc(90vh - 2.6rem);
+    overflow-y: scroll;
+    overflow-x:auto;
+    flex-direction:column-reverse;
+    margin-left: 1rem;
+}
+
+container.chats {
+    width: 20vw;
+    height: 90vh;
+    overflow: hidden;
+    flex-direction:column;
+    margin-left: 1rem;
+}
+
+container.input {
+    width: calc(80vw - 3rem);
+    height: 2rem;
+    margin-left: 1rem;
+    margin-top: 0.5rem;
+}
+
+container.input input {
+    background-color: transparent;
+    color: #e0e0e0;
+    outline: none;
+    border: none;
+    width: 100%;
+}
+
+container.input button {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: #e0e0e0;
+    cursor: pointer;
+}
+
+container.input button:hover {
+    scale: 1.1 1.1;
+}
+
+p.message {
+    color: #e0e0e0;
+    border-left: #303036 0.3rem solid;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: #30303600;
+    transition-duration: 0.25s;
+}
+
+p.message:hover {
+    background-color: #303036e0;
+}
+
+button.chat {
+    color: #e0e0e0;
+    border: none;
+    border-left: #303036 0.5rem solid;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: #30303600;
+    transition-duration: 0.25s;
+    padding-left: 0.5rem;
+    font-size: 2vh;
+}
+
+button.chat:hover {
+    background-color: #303036e0;
+}
+
+button.chat:active {
+    animation: click 0.5s ease-in-out;
+    -webkit-animation: click 0.5s ;
+}
+
+@keyframes click {
+    0% {
+        scale: 1 1;
+    }
+    20% {
+        scale: 1.2 1.2;
+    }
+    0% {
+        scale: 0.9 0.9;
+    }
+    100% {
+        scale: 1 1;
+    }
+}
+
+* {
+    font-family: 'Courier New', Courier, monospace;
+}
+
+span.name {
+    color: #00ff99;
+}
+
+span.name::after {
+    color: #e0e0e0;
+    content: " > ";
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 1rem;
+  }
+  
+  /* Track */
+  ::-webkit-scrollbar-track {
+    border-radius: 10px;
+  }
+  
+  /* Handle */
+  ::-webkit-scrollbar-thumb {
+    background: #303036;
+    border-radius: 10px;
+  }

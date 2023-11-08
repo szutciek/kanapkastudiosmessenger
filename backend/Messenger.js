@@ -20,4 +20,8 @@ function setPostRoute(app, path, callback) {
     app.post(path, callback);
 }
 
-module.exports = { createServer, setGetRoute, setPostRoute };
+function setUses(app) {
+    app.use(express.static('public'))
+}
+
+module.exports = { createServer, setGetRoute, setPostRoute, setUses };
