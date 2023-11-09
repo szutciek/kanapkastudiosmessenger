@@ -1,10 +1,18 @@
 const express = require('express');
+const session = require('express-session');
 const bodyParser = require('body-parser');
 const { WebSocketServer } = require('ws');
+const { v4 } = require('uuid');
 
 function createServer() {
     const app = express();
     app.use(bodyParser.json());
+    app.use(session({
+        secret: 'keyboard cat',
+        resave: false,
+        saveUninitialized: true,
+        cookie: { secure: true }
+    }));
 
     app.set('view engine', 'ejs');
 
@@ -13,6 +21,17 @@ function createServer() {
     })
 
     return app;
+}
+
+function resetSessionIfLoggedIn(req) {
+    if (req.session.token !== undefined) {
+        req.session.token = undefined;
+        req.session.user = undefined;
+    }
+}
+
+function uuid() {
+    return v4();
 }
 
 function setGetRoute(app, path, callback) {
@@ -39,6 +58,8 @@ class MessengerWebSocketServer {
     /** @type {WebSocketServer} */
     WSS;
     #ServerMessageHandlers = new Map();
+
+    #LinkedUsers = new Map();
 
     constructor(port) {
         this.WSS = new WebSocketServer({ port: port });
@@ -85,6 +106,14 @@ class MessengerWebSocketServer {
     #exit(ws, data) {
 
     }
+
+    resetWebsocketConnection(token) {
+        this.#LinkedUsers.delete(token);
+    }
+    
+    linkWebsocketConnection(ws, token) {
+        this.#LinkedUsers.set(token, ws);
+    }
 }
 
-module.exports = { createServer, setGetRoute, setPostRoute, setUses, createWebsocketServer };
+module.exports = { createServer, setGetRoute, setPostRoute, setUses, createWebsocketServer, uuid, resetSessionIfLoggedIn };

@@ -7,7 +7,7 @@ class DataStorage {
     #db;
 
     constructor(dataPath) {
-        this.#db = new sqlite3.Database('../UserData/user.db');
+        this.#db = new sqlite3.Database(dataPath);
     }
 
     getUserData(username) {
@@ -65,8 +65,4 @@ class DataStorage {
     }
 }
 
-const storage = new DataStorage("a");
-
-storage.test();
-
-console.log(storage.verifyUser("test", "good"));
+module.exports = { DataStorage };
