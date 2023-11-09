@@ -8,14 +8,23 @@ body {
 
 container {
     display: flex;
-    width: 5rem;
-    height: 2rem;
+    min-width: 5rem;
+    min-height: 2rem;
+    width: fit-content;
+    height: fit-content;
     border: #303036 0.1rem solid;
     border-radius: 0.3rem;
     -webkit-border-radius: 0.3rem;
     -moz-border-radius: 0.3rem;
     -ms-border-radius: 0.3rem;
     -o-border-radius: 0.3rem;
+}
+
+container.column {
+    display: flex;
+    flex-direction: column;
+    flex-flow: column;
+    width: min-content;
 }
 
 container.chatView {
