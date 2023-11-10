@@ -1,0 +1,5 @@
+{
+    "uuid": "Chat uuid",
+    "messages": "Json stringified array of chat messages",
+    "participants": "Json stringified array of usernames"
+}

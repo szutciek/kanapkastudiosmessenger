@@ -1,0 +1,4 @@
+{
+    "username": "username",
+    "chatAccess": "Json stringified array of chat uuids"
+}

@@ -78,6 +78,9 @@
         <form>
             <input id="name" type="text" maxlength=16>
             <input id="password" type="password" maxlength=20>
+            <% if (error !== "none") { %>
+                <span style="color: red;"><%= error %></span>
+            <% } %>
             <button type="submit">Login</button>
         </form>
     </container>

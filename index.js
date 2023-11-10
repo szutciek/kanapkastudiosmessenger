@@ -10,8 +10,8 @@ Messenger.setGetRoute(app, '/', (req, res) => {
 });
 
 Messenger.setGetRoute(app, '/login', (req, res) => {
-    const data = { message: "pending" };
-    if (req.session.user !== null) {
+    const data = { message: "pending", error: "none" };
+    if (req.session.user !== undefined) {
         data.message = "logged in";
         data.username = req.session.user.username;
     }
@@ -20,6 +20,7 @@ Messenger.setGetRoute(app, '/login', (req, res) => {
 
 Messenger.setPostRoute(app, '/login', (req, res) => {
     const error = (msg) => {
+        console.log(msg);
         res.render('pages/login', { message: "pending", error: msg });
     }
 
@@ -29,13 +30,25 @@ Messenger.setPostRoute(app, '/login', (req, res) => {
 
     if (req.body === undefined) return error("Missing body");
     if (!UserDB.verifyInput(req.body.username, req.body.password)) return error("Fuck off. Actually just get the fuck out of here fuckhead. Script kiddie");
-    if (UserDB.getUserData(req.body.username) === null) return error("User not found.");
+    if (UserDB.getUserData(req.body.username) === null) {
+        error("User not found.");
+        return;
+    }
 
     if (UserDB.verifyUser(req.body.username, req.body.password)) {
         req.session.loginAttempt--;
 
-        // login the user aka get user data from db
-        // and generate a volatile token.
+        const user = UserDB.getUserData(req.body.username);
+
+        req.session.user = {
+            username: user.username,
+            score: user.score
+        }
+
+        const token = Messenger.uuid();
+        UserDB.userLoggedIn(token, user.username);
+
+        res.render("pages/login", { message: "success", user_token: token, username: user.username });
     }
     else {
         return error("Wrong password.");
@@ -43,7 +56,16 @@ Messenger.setPostRoute(app, '/login', (req, res) => {
 });
 
 wss.addMessageHandler("message", (ws, json, req) => {
+    UserDB.userMessage(wss.getLinkedConnection(ws).username, json.chat_id, json.message);
+});
 
+wss.addMessageHandler("link", (ws, json, req) => {
+    if (json.user_token !== undefined) {
+        const username = UserDB.getLoggedInUser(json.user_token);
+        if (username === undefined) return;
+        wss.linkWebsocketConnection(ws, json.user_token, username);
+        console.log("Linked websocket to user.");
+    }
 });
 
 Messenger.setUses(app);

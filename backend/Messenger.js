@@ -60,6 +60,7 @@ class MessengerWebSocketServer {
     #ServerMessageHandlers = new Map();
 
     #LinkedUsers = new Map();
+    #LinkedUsers_Username = new Map();
 
     constructor(port) {
         this.WSS = new WebSocketServer({ port: port });
@@ -89,7 +90,7 @@ class MessengerWebSocketServer {
             const handler = this.#ServerMessageHandlers.get(json.path);
 
             if (handler !== undefined)
-                handler(json, req);
+                handler(ws, json, req);
         } catch {
             console.error(" Malformed JSON. " + data);
         }
@@ -110,9 +111,14 @@ class MessengerWebSocketServer {
     resetWebsocketConnection(token) {
         this.#LinkedUsers.delete(token);
     }
-    
-    linkWebsocketConnection(ws, token) {
-        this.#LinkedUsers.set(token, ws);
+
+    linkWebsocketConnection(ws, token, username) {
+        this.#LinkedUsers.set(ws, { token: token, username: username });
+        this.#LinkedUsers_Username.set(username, ws);
+    }
+
+    getLinkedConnection(ws) {
+        return this.#LinkedUsers.get(ws);
     }
 }
 
