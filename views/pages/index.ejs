@@ -3,24 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main</title>
     <link rel="stylesheet" href="styles.css">
-    <title>Document</title>
+    <style>
+        .center {
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            height: 90vh;
+        }
+
+        h1 {
+            font-size: 7vh;
+            color: #e0e0e0;
+        }
+
+        h2 {
+            font-size: 4vh;
+            color: #e0e0e0;
+        }
+
+        animatedtext {
+            position: absolute;
+            margin-left: 50vw;
+            font-size: 9vh;
+            color: #e0e0e0;
+            text-shadow: #fff 0 0 2vh, #fff 0 0 1vh;
+        }
+    </style>
 </head>
 <body>
-    <div class="container-flex">
-        <container class="chats">
-            <button class="chat">Test</button>
-        </container>
-        <div>
-            <container class="chatView">
-                <p class="message"><span class="name">Username</span>testas dasda sdasdad</p>
-            </container>
-            <container class="input">
-                <input type="text">
-                <button>Send</button>
-            </container>
-        </div>
+    <%- include("../partials/header") %>
+    <div class="center">
+        <h2>Kanapka Studios</h2>
+        <animatedtext>Test</animatedtext>
+        <h1>Chat Securely</h1>
     </div>
+
+    <script>
+        const text = document.querySelector('animatedtext');
+        const att = [
+            "Anonymous",
+            "Secure",
+            "Fast",
+            "Effective",
+            "Simple"
+        ];
+        setInterval(() => {
+            const time = Date.now();
+            const flicker = Math.sin(time / 50);
+            const p = Math.sin(((time / 2000.0) % 1.0) * Math.PI);
+            const w = Math.floor((time / 2000.0 / att.length) % 1.0 * att.length);
+            text.textContent = att[w].substring(0, Math.round(p * att[w].length)) + (flicker > 0 || (time / 2000.0) % 1.0 > 0.5 ? "|" : "");
+        }, 10);
+    </script>
 </body>
-<script src="js/index.js"></script>
 </html>

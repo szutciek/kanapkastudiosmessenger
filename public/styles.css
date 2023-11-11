@@ -28,26 +28,31 @@ container.column {
 }
 
 container.chatView {
-    width: calc(80vw - 3rem);
+    width: calc(80vw - 4rem);
     height: calc(90vh - 2.6rem);
     overflow-y: scroll;
     overflow-x:auto;
-    flex-direction:column-reverse;
+    flex-direction:column;
+    justify-content: flex-end;
     margin-left: 1rem;
+    margin-right: 1rem;
 }
 
 container.chats {
     width: 20vw;
     height: 90vh;
     overflow: hidden;
+    overflow-y: auto;
     flex-direction:column;
     margin-left: 1rem;
 }
 
 container.input {
-    width: calc(80vw - 3rem);
+    width: calc(80vw - 4.5rem);
     height: 2rem;
     margin-left: 1rem;
+    margin-right: 1rem;
+    padding-left: 0.5rem;
     margin-top: 0.5rem;
 }
 
@@ -74,6 +79,7 @@ container.input button:hover {
 p.message {
     color: #e0e0e0;
     border-left: #303036 0.3rem solid;
+    padding-left: 0.5vw;
     margin-top: 0.5rem;
     margin-bottom: 0.5rem;
     background-color: #30303600;
@@ -93,7 +99,26 @@ button.chat {
     background-color: #30303600;
     transition-duration: 0.25s;
     padding-left: 0.5rem;
+    font-size: 1rem;
+}
+
+button.chat.menu {
+    border: none;
+    border-bottom: #e0e0e077 0.1rem solid;
+}
+
+button.chat.menu a {
+    color: #e0e0e0;
+    text-decoration: none;
     font-size: 2vh;
+}
+
+button.chat.menu a::after {
+    content: " > ";
+}
+
+button.chat.menu a::before {
+    content: " < ";
 }
 
 button.chat:hover {
@@ -133,18 +158,50 @@ span.name::after {
     content: " > ";
 }
 
+span.name::before {
+    color: #e0e0e0;
+    content: " < ";
+}
+
 /* width */
 ::-webkit-scrollbar {
-    width: 1rem;
-  }
+    width: 2vw;
+}
   
   /* Track */
-  ::-webkit-scrollbar-track {
+::-webkit-scrollbar-track {
     border-radius: 10px;
-  }
+}
   
   /* Handle */
-  ::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
     background: #303036;
     border-radius: 10px;
-  }
+}
+
+header {
+    display:flex;
+    width: 20vw;
+    justify-content: center;
+    margin-left: 1rem;
+    gap: 3vw;
+    margin-bottom: 1vh;
+}
+
+header a {
+    color: #e0e0e0;
+    font-size: 1.5vw;
+    text-decoration: none;
+    border: #303036 0.1rem solid;
+    padding: 0.3vw;
+    border-radius: 0.3rem;
+    -webkit-border-radius: 0.3rem;
+    -moz-border-radius: 0.3rem;
+    -ms-border-radius: 0.3rem;
+    -o-border-radius: 0.3rem;
+    transition-duration: 0.25s;
+}
+
+header a:hover {
+    scale: 1.1 1.1;
+}

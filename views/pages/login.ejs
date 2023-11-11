@@ -6,7 +6,7 @@
     <title>Login</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        body {
+        center {
             display: flex;
             justify-content: center;
             align-items: center;
@@ -73,17 +73,20 @@
     </style>
 </head>
 <body>
-    <container class="column" style="border: none;">
-        <h1>Login</h1>
-        <form>
-            <input id="name" type="text" maxlength=16>
-            <input id="password" type="password" maxlength=20>
-            <% if (error !== "none") { %>
-                <span style="color: red;"><%= error %></span>
-            <% } %>
-            <button type="submit">Login</button>
-        </form>
-    </container>
+    <%- include("../partials/header") %>
+    <center>
+        <container class="column" style="border: none;">
+            <h1>Login</h1>
+            <form>
+                <input id="name" type="text" maxlength=16>
+                <input id="password" type="password" maxlength=20>
+                <% if (error !== "none") { %>
+                    <span style="color: red;"><%= error %></span>
+                <% } %>
+                <button type="submit">Login</button>
+            </form>
+        </container>
+    </center>
     <script>
         const form = document.querySelector('form');
         form.addEventListener('submit', (e) => {

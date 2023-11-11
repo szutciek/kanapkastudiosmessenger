@@ -13,16 +13,17 @@ class DataStorage {
     }
 
     getUserData(username) {
-        if (!this.verifyInput(username, "")) return false;
+        if (!this.verifyInput(username, "")) return null;
         this.#get(`SELECT * FROM users WHERE username='${username}';`, (err, row) => {
             if (err !== null) {
                 console.log(err);
                 return null;
             }
-            else {
+            else if (row !== undefined) {
                 console.log("Returning user data.");
                 return row;
             }
+            else return null;
         });
     }
 
@@ -33,7 +34,7 @@ class DataStorage {
                 console.log(err);
                 return false;
             }
-            else {
+            else if (row !== undefined) {
                 console.log("Username and password match.");
                 return true;
             }
@@ -62,7 +63,8 @@ class DataStorage {
                 console.log(err);
                 return null;
             }
-            return row;
+            else if (row !== undefined) return row;
+            else return null;
         });
         return null;
     }

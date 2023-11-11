@@ -1,5 +1,6 @@
 const express = require('express');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const bodyParser = require('body-parser');
 const { WebSocketServer } = require('ws');
 const { v4 } = require('uuid');
@@ -7,11 +8,12 @@ const { v4 } = require('uuid');
 function createServer() {
     const app = express();
     app.use(bodyParser.json());
+    app.use(cookieParser());
     app.use(session({
         secret: 'keyboard cat',
         resave: false,
         saveUninitialized: true,
-        cookie: { secure: true }
+        cookie: { secure: true, maxAge: 1000 * 60 * 60 * 24 },
     }));
 
     app.set('view engine', 'ejs');

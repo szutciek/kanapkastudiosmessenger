@@ -9,6 +9,10 @@ Messenger.setGetRoute(app, '/', (req, res) => {
     res.render('pages/index');
 });
 
+Messenger.setGetRoute(app, '/chat', (req, res) => {
+    res.render('pages/chat');
+});
+
 Messenger.setGetRoute(app, '/login', (req, res) => {
     const data = { message: "pending", error: "none" };
     if (req.session.user !== undefined) {
@@ -27,10 +31,13 @@ Messenger.setPostRoute(app, '/login', (req, res) => {
     if (req.session.loginAttempt === undefined) req.session.loginAttempt = 1;
     else if (req.session.loginAttempt > 6) return error("Too many failed login attempts. Try again later.");
     else req.session.loginAttempt++;
+    req.session.save();
+    console.log(req.session.loginAttempt);
 
     if (req.body === undefined) return error("Missing body");
     if (!UserDB.verifyInput(req.body.username, req.body.password)) return error("Fuck off. Actually just get the fuck out of here fuckhead. Script kiddie");
-    if (UserDB.getUserData(req.body.username) === null) {
+    const _user = UserDB.getUserData(req.body.username);
+    if (_user === null || _user === undefined) {
         error("User not found.");
         return;
     }
@@ -39,11 +46,12 @@ Messenger.setPostRoute(app, '/login', (req, res) => {
         req.session.loginAttempt--;
 
         const user = UserDB.getUserData(req.body.username);
-
+        console.log(user);
         req.session.user = {
             username: user.username,
             score: user.score
         }
+        req.session.save();
 
         const token = Messenger.uuid();
         UserDB.userLoggedIn(token, user.username);
