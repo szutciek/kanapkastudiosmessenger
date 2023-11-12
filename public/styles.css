@@ -165,7 +165,7 @@ span.name::before {
 
 /* width */
 ::-webkit-scrollbar {
-    width: 2vw;
+    width: 0.7vw;
 }
   
   /* Track */
@@ -175,8 +175,13 @@ span.name::before {
   
   /* Handle */
 ::-webkit-scrollbar-thumb {
-    background: #303036;
+    background: #30303600;
     border-radius: 10px;
+    transition-duration: 0.25s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #303036ff;
 }
 
 header {
