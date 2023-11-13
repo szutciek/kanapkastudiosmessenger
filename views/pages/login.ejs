@@ -78,11 +78,9 @@
         <container class="column" style="border: none;">
             <h1>Login</h1>
             <form>
+                <span id="error-out" style="color: red;"></span>
                 <input id="name" type="text" maxlength=16>
                 <input id="password" type="password" maxlength=20>
-                <% if (error !== "none") { %>
-                    <span style="color: red;"><%= error %></span>
-                <% } %>
                 <button type="submit">Login</button>
             </form>
         </container>
@@ -107,7 +105,19 @@
                 headers: {
                     "Content-Type": "application/json"
                 }
-            });
+            }).then((response) => response.json().then(json => {
+                if (json.error !== undefined) {
+                    document.getElementById('error-out').innerText = json.error;
+                }
+                if (json.message === "success") {
+                    localStorage.setItem('username', json.username);
+                    localStorage.setItem('token', json.user_token);
+                    document.getElementById('error-out').innerText = "Logged in successfully.";
+
+                    window.location = '/profile';
+                    // location.reload();
+                }
+            }));
         }
     </script>
 </body>

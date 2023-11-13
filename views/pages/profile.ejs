@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        h1 {
+            color: #e0e0e0;
+        }
+
+        .center {
+            display: flex;
+            height: 70vh;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .e {
+            color: #e0e0e0;
+            font-size: 2rem;
+            text-decoration: none;
+            padding: 1rem;
+            border: #303036 0.1rem solid;
+            border-radius: 0.1rem;
+            box-shadow: inset 0 0 0rem #303036;
+            transition-duration: 0.25s;
+        }
+
+        .e:hover {
+            box-shadow: inset 0 0 1rem #303036;
+            scale: 1.05 1.05;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../partials/header') %>
+    <center class="center">
+        <h1>Welcome <span style="color: #fff; text-shadow: #fff 0 0 0.2rem; text-decoration: underline;"><%= username %></span> to KCS</h1>
+        <a class="e" href="/chat">Start Chatting!</a>
+    </center>
+    <center><a style="color: #ffaaaa;" class="e" href="/logout">Logout</a></center>
+</body>
+</html>

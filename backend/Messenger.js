@@ -10,17 +10,17 @@ function createServer() {
     app.use(bodyParser.json());
     app.use(cookieParser());
     app.use(session({
-        secret: 'keyboard cat',
+        secret: 'bobux',
         resave: false,
-        saveUninitialized: true,
-        cookie: { secure: true, maxAge: 1000 * 60 * 60 * 24 },
+        saveUninitialized: false,
+        cookie: { maxAge: 1000 * 60 * 60 * 24, httpOnly: false },
     }));
 
     app.set('view engine', 'ejs');
 
     app.listen(3000, () => {
         console.log(`listening on 3000`);
-    })
+    });
 
     return app;
 }
@@ -45,6 +45,7 @@ function setGetRoute(app, path, callback) {
 function setPostRoute(app, path, callback) {
     app.post(path, (req, res) => {
         callback(req, res);
+        req.session.save();
     });
 }
 
