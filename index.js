@@ -27,8 +27,11 @@ Messenger.setGetRoute(app, '/profile', (req, res) => {
 });
 
 Messenger.setGetRoute(app, '/logout', (req, res) => {
-    req.session.user = undefined;
-    res.redirect('/');
+    if (req.session.user !== undefined) {
+        UserDB.userLoggedOut(req.session.user.username);
+        req.session.user = undefined;
+    }
+    res.redirect('/login');
 })
 
 Messenger.setGetRoute(app, '/login', (req, res) => {
@@ -43,7 +46,7 @@ Messenger.setGetRoute(app, '/login', (req, res) => {
 
 Messenger.setPostRoute(app, '/login', async (req, res) => {
 
-    const error = (msg) => {
+    const sendError = (msg) => {
         console.log(msg);
         res.send({ error: msg });
     }
@@ -54,21 +57,21 @@ Messenger.setPostRoute(app, '/login', async (req, res) => {
         else req.session.loginAttempt++;
         req.session.save();
         console.log(req.session.loginAttempt);
+        verify_input();
     }
 
     const verify_input = () => {
-        if (req.body === undefined) return error("Missing body");
-        if (!UserDB.verifyInput(req.body.username, req.body.password)) return error("Fuck off. Actually just get the fuck out of here fuckhead. Script kiddie");
+        if (req.body === undefined) return sendError("Missing body");
+        if (!UserDB.verifyInput(req.body.username, req.body.password)) return sendError("Fuck off. Actually just get the fuck out of here fuckhead. Script kiddie");
+        verify_if_user_exists();
     }
 
     const verify_if_user_exists = () => {
         UserDB.getUserData(req.body.username).then(_user => {
             if (_user === null || _user === undefined) {
-                error("User not found.");
-                return;
+                sendError("User not found.");
             }
-
-            verify_user_data(_user);
+            else verify_user_data(_user);
         });
     }
 
@@ -92,7 +95,7 @@ Messenger.setPostRoute(app, '/login', async (req, res) => {
             }
             else {
                 console.log("wrong")
-                return error("Wrong password.");
+                return sendError("Wrong password.");
             }
         });
     }
@@ -100,8 +103,6 @@ Messenger.setPostRoute(app, '/login', async (req, res) => {
     try {
         if (req.session.user === undefined) {
             session_login_attempt();
-            verify_input();
-            verify_if_user_exists();
         }
     } catch (e) {
         console.log(e);
@@ -109,6 +110,7 @@ Messenger.setPostRoute(app, '/login', async (req, res) => {
 });
 
 wss.addMessageHandler("message", (ws, json, req) => {
+    console.log(json);
     UserDB.userMessage(wss.getLinkedConnection(ws).username, json.chat_id, json.message);
 });
 

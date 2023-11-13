@@ -6,6 +6,7 @@ class DataStorage {
     /** @type {Database} */
     #db;
     #LoggedInUsers = new Map();
+    #UsersLoggedIn = new Map();
 
     #currentlyOpenChats = new Map();
 
@@ -116,6 +117,12 @@ class DataStorage {
 
     userLoggedIn(token, username) {
         this.#LoggedInUsers.set(token, username);
+        this.#UsersLoggedIn.set(username, token);
+    }
+
+    userLoggedOut(username) {
+        this.#LoggedInUsers.delete(this.#UsersLoggedIn.get(username));
+        this.#UsersLoggedIn.delete(username);
     }
 
     getLoggedInUser(token) {
