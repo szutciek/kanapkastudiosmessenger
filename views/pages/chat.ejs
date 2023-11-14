@@ -6,18 +6,21 @@
     <link rel="stylesheet" href="styles.css">
     <title>Chat</title>
     <style>
-        .create-chat {
-            height: 2rem;
-            font-size: 2rem;
+        .chat.create {
+            width: 3rem;
+            height: 3rem;
+            padding: 0.5rem;
+            font-size: 1.5rem;
             background-color: transparent;
             outline: none;
             border: #303036 0.1rem solid;
             box-shadow: #111 0 1rem 2rem;
-            border-radius: 0.3rem;
+            border-radius: 3rem !important;
             -webkit-border-radius: 0.3rem;
             -moz-border-radius: 0.3rem;
             -ms-border-radius: 0.3rem;
             -o-border-radius: 0.3rem;
+            transition-duration: 0.1s;
         }
     </style>
 </head>
@@ -26,8 +29,8 @@
     <div class="container-flex">
         <container class="chats">
             <button class="chat">test</button>
-            <input class="create-chat">
-            <button class="create-chat">+</button>
+            <input data-da="binky" class="chat">
+            <button class="chat create">+</button>
         </container>
         <div>
             <container class="chatView">

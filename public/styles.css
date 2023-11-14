@@ -95,6 +95,29 @@ p.message:hover {
     background-color: #303036e0;
 }
 
+input.chat {
+    color: #e0e0e0;
+    border: none;
+    border-left: #303036 0.5rem solid;
+    outline: none;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    background-color: #30303600;
+    transition-duration: 0.25s;
+    padding-left: 0.5rem;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+input.chat:hover {
+    background-color: #303036e0;
+}
+
+input.chat:active {
+    animation: click 0.5s ease-in-out;
+    -webkit-animation: click 0.5s ;
+}
+
 button.chat {
     color: #e0e0e0;
     border: none;
@@ -105,6 +128,15 @@ button.chat {
     transition-duration: 0.25s;
     padding-left: 0.5rem;
     font-size: 1.5rem;
+}
+
+button.chat:hover {
+    background-color: #303036e0;
+}
+
+button.chat:active {
+    animation: click 0.5s ease-in-out;
+    -webkit-animation: click 0.5s ;
 }
 
 button.chat.menu {
@@ -124,15 +156,6 @@ button.chat.menu a::after {
 
 button.chat.menu a::before {
     content: " < ";
-}
-
-button.chat:hover {
-    background-color: #303036e0;
-}
-
-button.chat:active {
-    animation: click 0.5s ease-in-out;
-    -webkit-animation: click 0.5s ;
 }
 
 @keyframes click {

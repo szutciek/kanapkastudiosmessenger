@@ -75,5 +75,67 @@ const setup = () => {
 setup();
 
 function createNewChat() {
-    
+    const chat_create = document.createElement('input');
+    chat_create.classList.add("chat create");
+    chat_create.addEventListener('keydown', e => {
+        if (document.activeElement === chat_create) {
+            if (e.key === 'enter') {
+                fetch('/chat/create', {
+                    method: "POST",
+                    body: JSON.stringify({
+                        chatname: chat_create.value
+                    })
+                }).then(value => {
+                    CreateChat(value.chatname, value.chat_id);
+                });
+                chat_create.remove();
+            }
+        }
+    })
+}
+
+function CreateChat(chatname, chat_id) {
+    const chat = document.createElement('button');
+    chat.innerText = chatname;
+    chat.dataset.chat_id = chat_id;
+    chat.addEventListener('click', (e) => {
+        showChatContent(chat.dataset.chat_id);
+    });
+}
+
+function showChatContent(chat_id) {
+    fetch('/chat/' + chat_id, {
+        method: "GET",
+    }).then(value => {
+        if (value.error !== undefined) {
+            displayError(value.error);
+        }
+        else {
+            displayChatContent(value);
+        }
+    });
+}
+
+function displayError(error) {
+    clearChatView();
+    const chatView = document.querySelector('.chatView');
+    chatView.append(`<p class="message"><span style="color: red;" class="name">Error</span>${error}</p>`);
+}
+
+function displayChatContent(chat) {
+    clearChatView();
+    const chatView = document.querySelector('.chatView');
+
+    const messages = JSON.parse(chat.messages);
+
+    messages.forEach(element => {
+        chatView.append(`<p class="message"><span class="name">${element.username}</span>${element.message}</p>`);
+    });
+}
+
+function clearChatView() {
+    const chatView = document.querySelector('.chatView');
+    while (chatView.firstChild) {
+        chatView.removeChild(chatView.firstChild);
+    }
 }

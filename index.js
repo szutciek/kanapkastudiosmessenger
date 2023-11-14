@@ -16,7 +16,10 @@ Messenger.setGetRoute(app, '/', (req, res) => {
 });
 
 Messenger.setGetRoute(app, '/chat/:chatid', async (req, res) => {
-    res.send(await UserDB.getChatData(req.params.chatid));
+    const chat = await UserDB.getChatData(req.params.chatid);
+    if (chat !== undefined)
+        res.send(chat);
+    else res.send({ error: "Chat not found" });
 });
 
 Messenger.setGetRoute(app, '/chat', (req, res) => {
