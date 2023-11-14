@@ -5,24 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="styles.css">
     <title>Chat</title>
+    <style>
+        .create-chat {
+            height: 2rem;
+            font-size: 2rem;
+            background-color: transparent;
+            outline: none;
+            border: #303036 0.1rem solid;
+            box-shadow: #111 0 1rem 2rem;
+            border-radius: 0.3rem;
+            -webkit-border-radius: 0.3rem;
+            -moz-border-radius: 0.3rem;
+            -ms-border-radius: 0.3rem;
+            -o-border-radius: 0.3rem;
+        }
+    </style>
 </head>
 <body>
     <%- include('../partials/header') %>
     <div class="container-flex">
         <container class="chats">
-            
+            <button class="chat">test</button>
+            <input class="create-chat">
+            <button class="create-chat">+</button>
         </container>
         <div>
             <container class="chatView">
-                <p class="message"><span class="name">Username</span>testas dasda sdasdad</p>
-                <p class="message"><span class="name">Username</span>a</p>
+                <% if (!isLoggedIn) { %>
+                    <p class="message"><span style="color: #ff9999;" class="name">KSCS</span>You aren't logged in. <a style="color: #ff9999;" href="/login">Click here to go to the login page.</a></p>
+                <% } %>
             </container>
             <container class="input">
-                <input type="text">
-                <button>Send</button>
+                <input id="input" type="text">
+                <button id="send">Send</button>
             </container>
         </div>
     </div>
 </body>
-<script defer src="js/index.js"></script>
+<% if (isLoggedIn) {%>
+    <script defer src="js/index.js"></script>
+<% } %>
 </html>

@@ -13,27 +13,33 @@ class DataStorage {
     constructor(dataPath) {
         this.#db = new sqlite3.Database(dataPath);
 
-        this.#RUN(`CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password TEXT NOT NULL, score INTEGER DEFAULT 0 NOT NULL, lastOnline TEXT);`, []);
-        /**
-         * {
-    "uuid": "Chat uuid",
-    "owner": "username",
-    "messages": "Json stringified array of chat messages",
-    "participants": "Json stringified array of usernames"
-}
-         */
-        this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(uuid TEXT PRIMARY KEY, owner TEXT NOT NULL, message TEXT DEFAULT '[]', participants TEXT DEFAULT '[]');`, [])
+        this.#createTables();
 
         setInterval(() => {
             this.disposeOfChats();
         }, 1000 * 60);
     }
 
+    async #createTables() {
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password TEXT NOT NULL, score INTEGER DEFAULT 0 NOT NULL, lastOnline TEXT);`, []);
+
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(uuid TEXT PRIMARY KEY, chatname TEXT, owner TEXT NOT NULL, message TEXT DEFAULT '[]', participants TEXT DEFAULT '[]');`, [])
+
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatperms(username TEXT PRIMARY KEY, chatAccess TEXT DEFAULT '[]');`, [])
+
+        console.log("done");
+    }
+
     disposeOfChats() {
         let now = Date.now();
         let values = this.#currentlyOpenChats.values();
         for (const chat in values) {
+            if (chat.lastAccessed === undefined) {
+                console.log("chat is not available");
+                continue;
+            }
             if (now - chat.lastAccessed > 1000 * 60 * 60) {
+                this.saveChat(chat);
                 this.#currentlyOpenChats.delete(chat.uuid);
             }
         }
@@ -61,9 +67,9 @@ class DataStorage {
         return user !== undefined && user !== null;
     }
 
-    userMessage(username, chat_id, message) {
+    userMessage(wss, username, chat_id, message) {
         if (this.hasPermissionIn(username, chat_id)) {
-            this.createChatMessage(username, chat_id, message);
+            this.createChatMessage(wss, username, chat_id, message);
         }
     }
 
@@ -88,21 +94,27 @@ class DataStorage {
         return chatdata;
     }
 
-    createChatMessage(username, chat_id, message) {
-        const chatdata = this.getChatData(chat_id);
-        const json = JSON.parse(chatdata.messages);
-        /**
-         * "username": "username",
-            "date": "00/00/0000",
-            "message": "content"
-         */
-        json.push({
-            username: username,
-            date: new Date(Date.now()).toDateString(),
-            message: message
-        });
+    createChatMessage(wss, username, chat_id, message) {
+        this.getChatData(chat_id).then(chatdata => {
+            const json = JSON.parse(chatdata.messages);
+            /**
+             * "username": "username",
+                "date": "00/00/0000",
+                "message": "content"
+            */
+            const msg = {
+                username: username,
+                date: new Date(Date.now()).toDateString(),
+                message: message
+            };
+            json.push(msg);
 
-        chatdata.messages = JSON.stringify(json);
+            for (const user in chatdata.participants) {
+                wss.sendMessage(wss.getLinkedUser(user), msg);
+            }
+
+            chatdata.messages = JSON.stringify(json);
+        });
     }
 
     verifyInput(username, password) {
@@ -112,7 +124,23 @@ class DataStorage {
 
     createUser(username, password) {
         if (!this.verifyInput(username, password)) return false;
-        if (this.getUserData(username) !== null) return false;
+        this.getUserData(username).then(value => {
+            if (value === undefined) {
+                this.#defineNewUser(username, password);
+            }
+        });
+    }
+
+    #defineNewUser(username, password) {
+        this.#RUN(`INSERT INTO users(username, password, score, lastOnline) VALUES(?, ?, 0, ?)`, [username, password, new Date(Date.now()).toDateString]);
+    }
+
+    async createChat(owner, chatname) {
+        return await this.#RUN('INSERT INTO chatdata(uuid, chatname, owner, messages, participants) VALUES (?, ?, ?, ?, ?)', [uuid(), chatname, owner, "[]", JSON.stringify([owner])]);
+    }
+
+    async getUsersChats(owner) {
+
     }
 
     userLoggedIn(token, username) {
@@ -161,13 +189,20 @@ class DataStorage {
     }
 
     #RUN(sql, params) {
-        this.#db.serialize(() => {
-            this.#db.run(sql, params, (err, row) => {
-                if (err) {
-                    console.log(err);
-                }
+        return new Promise((resolve, reject) => {
+            this.#db.serialize(() => {
+                this.#db.run(sql, params, (err, row) => {
+                    if (err) {
+                        console.log(err);
+                        reject(err);
+                    }
+                    if (row) {
+                        resolve(row);
+                    }
+                    else resolve(null);
+                });
             });
-        });
+        })
     }
 
     #update(table, name, value, where_name, where_value) {
@@ -193,14 +228,16 @@ class DataStorage {
         for (const chat in this.#currentlyOpenChats) {
             this.saveChat(chat);
         }
+
+        this.#db.close();
     }
 
     saveChat(chat) {
         this.#db.serialize(() => {
             this.#db.run(`UPDATE chatdata
-                SET messages = ?
+                SET messages = ?, participants = ?
                 WHERE uuid = ${chat.uuid}
-            `, [JSON.stringify(chat.messages)]);
+            `, [JSON.stringify(chat.messages), JSON.stringify(chat.participants)]);
         });
     }
 }

@@ -94,8 +94,9 @@ class MessengerWebSocketServer {
 
             if (handler !== undefined)
                 handler(ws, json, req);
-        } catch {
-            console.error(" Malformed JSON. " + data);
+        } catch (e) {
+            console.error("JSON data: " + data);
+            console.error(e);
         }
     }
 
@@ -122,6 +123,18 @@ class MessengerWebSocketServer {
 
     getLinkedConnection(ws) {
         return this.#LinkedUsers.get(ws);
+    }
+
+    hasLinkedConnection(ws) {
+        return this.#LinkedUsers.has(ws);
+    }
+
+    getLinkedUser(username) {
+        return this.#LinkedUsers_Username.get(username);
+    }
+
+    sendMessage(ws, message) {
+        ws.send(JSON.stringify({ path: "message", username: message.username, message: message.message }));
     }
 }
 

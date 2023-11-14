@@ -6,17 +6,43 @@ const app = Messenger.createServer();
 const wss = Messenger.createWebsocketServer();
 const UserDB = new DataStorage('./UserData/user.db');
 
+process.addListener('SIGINT', (signal) => {
+    UserDB.cleanup();
+    process.exit();
+})
+
 Messenger.setGetRoute(app, '/', (req, res) => {
     res.render('pages/index');
 });
 
-Messenger.setGetRoute(app, '/chat/:chatid', (req, res) => {
-    console.log(req.params.chatid);
-    res.redirect('/chat');
+Messenger.setGetRoute(app, '/chat/:chatid', async (req, res) => {
+    res.send(await UserDB.getChatData(req.params.chatid));
 });
 
 Messenger.setGetRoute(app, '/chat', (req, res) => {
-    res.render('pages/chat');
+    res.render('pages/chat', { isLoggedIn: req.session.user !== undefined });
+});
+
+Messenger.setPostRoute(app, '/chat/create', async (req, res) => {
+    const sendError = (msg) => {
+        console.log(msg);
+        res.send({ error: msg });
+    }
+    if (req.session.user === undefined) return sendError("You must be logged in to create a new chat.");
+    if (req.body !== undefined) {
+        if (req.body.chatname.length <= 3 && req.body.chatname.length >= 20) return sendError("Chat name is too long.");
+
+        const chat = await UserDB.createChat(req.session.user.username, req.body.chatname);
+
+        if (chat){
+            res.send({ chat_id: chat.uuid, chatname: chat.chatname });
+        }
+        else sendError("Internal error when creating a chat.");
+    }
+});
+
+Messenger.setGetRoute(app, '/chat/data', (req, res) => {
+
 });
 
 Messenger.setGetRoute(app, '/profile', (req, res) => {
@@ -45,7 +71,6 @@ Messenger.setGetRoute(app, '/login', (req, res) => {
 });
 
 Messenger.setPostRoute(app, '/login', async (req, res) => {
-
     const sendError = (msg) => {
         console.log(msg);
         res.send({ error: msg });
@@ -111,7 +136,8 @@ Messenger.setPostRoute(app, '/login', async (req, res) => {
 
 wss.addMessageHandler("message", (ws, json, req) => {
     console.log(json);
-    UserDB.userMessage(wss.getLinkedConnection(ws).username, json.chat_id, json.message);
+    if (wss.hasLinkedConnection(ws))
+        UserDB.userMessage(wss.getLinkedConnection(ws).username, json.chat_id, json.message);
 });
 
 wss.addMessageHandler("link", (ws, json, req) => {
