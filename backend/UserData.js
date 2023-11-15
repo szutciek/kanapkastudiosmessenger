@@ -1,6 +1,7 @@
 const { Database } = require('sqlite3');
 const sqlite3 = require('sqlite3').verbose();
 const uuid = require('uuid');
+const Messenger = require('./Messenger.js');
 
 class DataStorage {
     /** @type {Database} */
@@ -9,6 +10,8 @@ class DataStorage {
     #UsersLoggedIn = new Map();
 
     #currentlyOpenChats = new Map();
+
+    #accessTimes = new Map();
 
     constructor(dataPath) {
         this.#db = new sqlite3.Database(dataPath);
@@ -23,7 +26,7 @@ class DataStorage {
     async #createTables() {
         await this.#RUN(`CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password TEXT NOT NULL, score INTEGER DEFAULT 0 NOT NULL, lastOnline TEXT);`, []);
 
-        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(uuid TEXT PRIMARY KEY, chatname TEXT, owner TEXT NOT NULL, message TEXT DEFAULT '[]', participants TEXT DEFAULT '[]');`, [])
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(uuid TEXT UNIQUE, chatname TEXT, owner TEXT NOT NULL, messages TEXT, participants TEXT);`, [])
 
         await this.#RUN(`CREATE TABLE IF NOT EXISTS chatperms(username TEXT PRIMARY KEY, chatAccess TEXT DEFAULT '[]');`, [])
 
@@ -34,11 +37,12 @@ class DataStorage {
         let now = Date.now();
         let values = this.#currentlyOpenChats.values();
         for (const chat in values) {
-            if (chat.lastAccessed === undefined) {
+            const time = now - this.#accessTimes.get(chat.uuid);
+            if (this.#accessTimes.get(chat.uuid) === undefined) {
                 console.log("chat is not available");
                 continue;
             }
-            if (now - chat.lastAccessed > 1000 * 60 * 60) {
+            if (time > 1000 * 60 * 5) {
                 this.saveChat(chat);
                 this.#currentlyOpenChats.delete(chat.uuid);
             }
@@ -53,10 +57,7 @@ class DataStorage {
                     reject(err);
                     return console.log(err.message);
                 }
-                if (row) {
-                    resolve(row);
-                    return;
-                }
+                resolve(row);
             });
         })
     }
@@ -67,17 +68,19 @@ class DataStorage {
         return user !== undefined && user !== null;
     }
 
-    userMessage(wss, username, chat_id, message) {
-        if (this.hasPermissionIn(username, chat_id)) {
+    async userMessage(wss, username, chat_id, message) {
+        if (await this.hasPermissionIn(username, chat_id)) {
             this.createChatMessage(wss, username, chat_id, message);
+            console.log("Creating message");
         }
+        else console.log(username + " has no permission in " + chat_id);
     }
 
-    hasPermissionIn(username, chat_id) {
-        const chatdata = this.getChatData(chat_id);
+    async hasPermissionIn(username, chat_id) {
+        const chatdata = await this.getChatData(chat_id);
         if (chatdata !== undefined) {
             const json = JSON.parse(chatdata.participants);
-            return json[username] !== undefined;
+            return json.includes(username);
         }
         return false;
     }
@@ -85,16 +88,17 @@ class DataStorage {
     async getChatData(chat_id) {
         if (this.#currentlyOpenChats.has(chat_id)) {
             let c = this.#currentlyOpenChats.get(chat_id);
-            c.lastAccessed = Date.now();
+            this.#accessTimes.set(chat_id, Date.now());
             return c;
         }
-        const chatdata = await this.#GET(`SELECT * FROM chatdata WHERE chat_id=?;`, [chat_id]);
-        chatdata.lastAccessed = Date.now();
+        const chatdata = await this.#GET(`SELECT * FROM chatdata WHERE uuid=?;`, [chat_id]);
+        this.#accessTimes.set(chat_id, Date.now());
         this.#currentlyOpenChats.set(chat_id, chatdata);
         return chatdata;
     }
 
     createChatMessage(wss, username, chat_id, message) {
+        console.log("Creating chat message");
         this.getChatData(chat_id).then(chatdata => {
             const json = JSON.parse(chatdata.messages);
             /**
@@ -108,12 +112,20 @@ class DataStorage {
                 message: message
             };
             json.push(msg);
+            console.log(json);
+            console.log(chatdata);
 
-            for (const user in chatdata.participants) {
-                wss.sendMessage(wss.getLinkedUser(user), msg);
+            const participants = JSON.parse(chatdata.participants);
+            console.log(participants);
+            console.log(typeof participants);
+
+            for (let i = 0; i < participants.length; i++) {
+                const user = participants[i];
+                wss.sendMessage(user, msg);
             }
 
             chatdata.messages = JSON.stringify(json);
+            console.log("Created chat message");
         });
     }
 
@@ -122,25 +134,90 @@ class DataStorage {
         return true;
     }
 
-    createUser(username, password) {
-        if (!this.verifyInput(username, password)) return false;
-        this.getUserData(username).then(value => {
-            if (value === undefined) {
-                this.#defineNewUser(username, password);
-            }
-        });
+    async createUser(username, password) {
+        if (!this.verifyInput(username, password)) return;
+        const value = await this.getUserData(username);
+        if (!value) {
+            return await this.#defineNewUser(username, password);
+        }
+        else {
+            return;
+        }
     }
 
-    #defineNewUser(username, password) {
-        this.#RUN(`INSERT INTO users(username, password, score, lastOnline) VALUES(?, ?, 0, ?)`, [username, password, new Date(Date.now()).toDateString]);
+    async #defineNewUser(username, password) {
+        return await this.#RUN(`INSERT INTO users(username, password, score, lastOnline) VALUES(?, ?, 0, ?)`, [username, password, new Date(Date.now()).toDateString]);
     }
 
     async createChat(owner, chatname) {
-        return await this.#RUN('INSERT INTO chatdata(uuid, chatname, owner, messages, participants) VALUES (?, ?, ?, ?, ?)', [uuid(), chatname, owner, "[]", JSON.stringify([owner])]);
+        const data = [Messenger.uuid(), chatname, owner, "[]", JSON.stringify([owner])];
+        await this.#RUN('INSERT INTO chatdata(uuid, chatname, owner, messages, participants) VALUES (?, ?, ?, ?, ?)', data);
+
+        await this.addUserToChat(data[0], owner);
+
+        return data;
     }
 
-    async getUsersChats(owner) {
+    async getUsersChats(user) {
+        const perms = await this.getUserPermissions(user);
+        const chats = [];
+        if (perms)
+            for (let i = 0; i < perms.length; i++) {
+                const element = perms[i];
+                
+                const chat = await this.#GET('SELECT uuid, chatname FROM chatdata WHERE uuid = ?', [element]);
+                chats.push(chat);
+            }
+        return chats;
+    }
 
+    async addUserToChat(chat_id, username) {
+        console.log("adding user to chat");
+        const chat = await this.getChatData(chat_id);
+        console.log("finished chat await");
+        if (!chat) return;
+        console.log("chat exists " + chat);
+        const participants = JSON.parse(chat.participants);
+        console.log("got participants parsed");
+        if (!participants.includes(username))
+            participants.push(username);
+        console.log("appended user to participants");
+        chat.participants = JSON.stringify(participants);
+        console.log("added participants");
+        await this.addUserPermission(chat_id, username);
+        console.log("added user permission to chat!");
+        this.saveChat(chat);
+        console.log("saved chat");
+    }
+
+    async addUserPermission(chat_id, username) {
+        await this.createPermissionsFor(username);
+        console.log("created permissions for " + username);
+        const chatAccess = await this.getUserPermissions(username);
+        console.log("fetched user permissions");
+        if (chatAccess)
+            if (!chatAccess.includes(chat_id))
+                chatAccess.push(chat_id);
+        else {
+            console.log("user doesn't have permissions??");
+        }
+        await this.#RUN('UPDATE chatperms SET chatAccess = ? WHERE username = ?', [JSON.stringify(chatAccess), username]);
+        console.log("updated chatperms table.");
+    }
+
+    async getUserPermissions(username) {
+        const perms = await this.#GET('SELECT chatAccess FROM chatperms WHERE username = ?', [username]);
+        if (perms) {
+            JSON.parse(perms.chatAccess);
+        }
+        else console.error("No permissions...");
+    }
+
+    async createPermissionsFor(username) {
+        const perms = await this.#GET('SELECT * FROM chatperms WHERE username = ?', [username]);
+        if (!perms)
+            await this.#RUN('INSERT INTO chatperms (username, chatAccess) VALUES (?, ?)', [username, JSON.stringify([])]);
+        else console.log("User permissions already exist!");
     }
 
     userLoggedIn(token, username) {
@@ -171,11 +248,7 @@ class DataStorage {
                         reject(err);
                         return;
                     }
-                    if (row) {
-                        resolve(row);
-                        return;
-                    }
-                    resolve(null);
+                    resolve(row);
                 });
             });
         });

@@ -22,15 +22,34 @@
             -o-border-radius: 0.3rem;
             transition-duration: 0.1s;
         }
+
+        .LoadingScreen {
+            position: absolute;
+            display: flex;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #303036;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
     </style>
 </head>
 <body>
     <%- include('../partials/header') %>
+    <% if (isLoggedIn) { %>
+        <div class="LoadingScreen">
+            <h1 style="color: #e0e0e0;">Establishing socket connection...</h1>
+            <p>For some reason it is taking slightly longer to connect to the server. We are sorry for any inconvenience.</p>
+        </div>
+    <% } %>
     <div class="container-flex">
         <container class="chats">
-            <button class="chat">test</button>
-            <input data-da="binky" class="chat">
-            <button class="chat create">+</button>
+            <% if (isLoggedIn) { %>
+                <button onclick="createNewChat()" class="chat create">+</button>
+            <% } %>
         </container>
         <div>
             <container class="chatView">

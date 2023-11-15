@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>Signup</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         center {
@@ -86,17 +86,17 @@
     <%- include("../partials/header") %>
     <center>
         <container class="column" style="border: none;">
-            <h1>Login</h1>
+            <h1>Signup</h1>
             <form>
                 <span id="error-out" style="color: red;"></span>
                 <input id="name" type="text" maxlength=16>
                 <input id="password" type="password" maxlength=20>
-                <button type="submit">Login</button>
+                <button type="submit">Signup</button>
             </form>
         </container>
         <container class="column" style="border: none; width: max-content;">
-            <p style="color: #e0e0e0; padding: 1rem; padding-bottom: 0.1rem;">Don't have an account?</p>
-            <a class="boxed" href="/signup">SignUp</a>
+            <p style="color: #e0e0e0; padding: 1rem; padding-bottom: 0.1rem;">Already have an account?</p>
+            <a class="boxed" href="/login">Login</a>
         </container>
     </center>
     <script>
@@ -110,7 +110,7 @@
         });
         
         const login = (name, password) => {
-            fetch('/login', {
+            fetch('/signup', {
                 method: 'POST',
                 body: JSON.stringify({
                     username: name,
