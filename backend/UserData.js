@@ -26,9 +26,9 @@ class DataStorage {
     async #createTables() {
         await this.#RUN(`CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password TEXT NOT NULL, score INTEGER DEFAULT 0 NOT NULL, lastOnline TEXT);`, []);
 
-        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(uuid TEXT UNIQUE, chatname TEXT, owner TEXT NOT NULL, messages TEXT, participants TEXT);`, [])
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(chat_id TEXT PRIMARY KEY, chatname TEXT, owner TEXT NOT NULL, messages TEXT, participants TEXT) WITHOUT ROWID;`, [])
 
-        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatperms(username TEXT PRIMARY KEY, chatAccess TEXT DEFAULT '[]');`, [])
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatperms(username VARCHAR(37) PRIMARY KEY, chatAccess TEXT DEFAULT '[]');`, [])
 
         console.log("done");
     }
@@ -37,14 +37,14 @@ class DataStorage {
         let now = Date.now();
         let values = this.#currentlyOpenChats.values();
         for (const chat in values) {
-            const time = now - this.#accessTimes.get(chat.uuid);
+            const time = now - this.#accessTimes.get(chat.chat_id);
             if (this.#accessTimes.get(chat.uuid) === undefined) {
                 console.log("chat is not available");
                 continue;
             }
             if (time > 1000 * 60 * 5) {
                 this.saveChat(chat);
-                this.#currentlyOpenChats.delete(chat.uuid);
+                this.#currentlyOpenChats.delete(chat.chat_id);
             }
         }
     }
@@ -91,7 +91,7 @@ class DataStorage {
             this.#accessTimes.set(chat_id, Date.now());
             return c;
         }
-        const chatdata = await this.#GET(`SELECT * FROM chatdata WHERE uuid=?;`, [chat_id]);
+        const chatdata = await this.#GET(`SELECT * FROM chatdata WHERE chat_id=?;`, [chat_id]);
         this.#accessTimes.set(chat_id, Date.now());
         this.#currentlyOpenChats.set(chat_id, chatdata);
         return chatdata;
@@ -151,8 +151,8 @@ class DataStorage {
 
     async createChat(owner, chatname) {
         const data = [Messenger.uuid(), chatname, owner, "[]", JSON.stringify([owner])];
-        await this.#RUN('INSERT INTO chatdata(uuid, chatname, owner, messages, participants) VALUES (?, ?, ?, ?, ?)', data);
-
+        await this.#RUN('INSERT INTO chatdata(chat_id, chatname, owner, messages, participants) VALUES (?, ?, ?, ?, ?)', data);
+        console.log("A");
         await this.addUserToChat(data[0], owner);
 
         return data;
@@ -165,7 +165,7 @@ class DataStorage {
             for (let i = 0; i < perms.length; i++) {
                 const element = perms[i];
                 
-                const chat = await this.#GET('SELECT uuid, chatname FROM chatdata WHERE uuid = ?', [element]);
+                const chat = await this.#GET('SELECT chat_id, chatname FROM chatdata WHERE chat_id = ?', [element]);
                 chats.push(chat);
             }
         return chats;
@@ -309,8 +309,8 @@ class DataStorage {
         this.#db.serialize(() => {
             this.#db.run(`UPDATE chatdata
                 SET messages = ?, participants = ?
-                WHERE uuid = ${chat.uuid}
-            `, [JSON.stringify(chat.messages), JSON.stringify(chat.participants)]);
+                WHERE chat_id =?
+            `, [JSON.stringify(chat.messages), JSON.stringify(chat.participants), chat.chat_id]);
         });
     }
 }

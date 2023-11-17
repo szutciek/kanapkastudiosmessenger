@@ -33,7 +33,7 @@ function resetSessionIfLoggedIn(req) {
 }
 
 function uuid() {
-    return v4();
+    return (v4()).replaceAll("-", "");
 }
 
 function setGetRoute(app, path, callback) {

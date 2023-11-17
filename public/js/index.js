@@ -98,11 +98,13 @@ function getChats() {
                 for (let i = 0; i < json.perms.length; i++) {
                     const element = json.perms[i];
                     
-                    CreateChat(element.chatname, element.uuid);
+                    CreateChat(element.chatname, element.chat_id);
                 }
             }
         })
-    })
+    }).catch(reason => {
+        displayError(reason);
+    });
 }
 
 function createNewChat() {
@@ -131,7 +133,9 @@ function createNewChat() {
                         chat_create.remove();
                         CreateChat(json.chatname, json.chat_id);
                     }
-                });
+                })
+            }).catch(reason => {
+                displayError(reason);
             });
             console.log("AAA");
         }
@@ -162,6 +166,8 @@ function showChatContent(chat_id) {
                 displayChatContent(json);
             }
         })
+    }).catch(reason => {
+        displayError(reason);
     });
 }
 
