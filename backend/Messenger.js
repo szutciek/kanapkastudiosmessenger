@@ -133,10 +133,10 @@ class MessengerWebSocketServer {
         return this.#LinkedUsers_Username.get(username);
     }
 
-    sendMessage(username, message) {
+    sendMessage(username, chat_id, message) {
         const ws = this.getLinkedUser(username);
         console.log(username);
-        if (ws !== undefined) ws.send(JSON.stringify({ path: "message", username: message.username, message: message.message }));
+        if (ws !== undefined) ws.send(JSON.stringify({ path: "message", username: message.username, chat_id: chat_id, message: message.message }));
         else console.error("WS not found!?");
     }
 
