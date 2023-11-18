@@ -2,18 +2,11 @@ body {
     background-color: #202026;
 }
 
-body::after {
-    position: absolute;
-    width: 500px;
-    height: 300px;
-    background: radial-gradient(transparent, #8822ff);
-}
-
 .container-flex {
     display: grid;
     grid-template-columns: 400px auto;
     gap: 20px;
-    height: 90vh;
+    height: 90vh !important;
 }
 
 container {
@@ -40,12 +33,12 @@ container.column {
 }
 
 container.chatView {
+    display:flex;
     width: 100%;
-    height: calc(100% - 2.6rem ) !important;
-    overflow-y: scroll;
-    overflow-x:auto;
-    flex-direction:column;
-    justify-content: flex-end;
+    height: calc(90vh - 2.6rem) !important;
+    overflow: auto;
+    overflow-y:scroll;
+    flex-direction: column;
 }
 
 container.chatView * {
@@ -57,7 +50,8 @@ container.chats {
     height: 100%;
     overflow: hidden;
     overflow-y: auto;
-    flex-direction: column;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
 }
 
 container.input {

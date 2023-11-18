@@ -53,9 +53,11 @@
         </container>
         <div>
             <container class="chatView">
-                <% if (!isLoggedIn) { %>
-                    <p class="message"><span style="color: #ff9999;" class="name">KSCS</span>You aren't logged in. <a style="color: #ff9999;" href="/login">Click here to go to the login page.</a></p>
-                <% } %>
+                <div class="here_append" style="height: min-content;">
+                    <% if (!isLoggedIn) { %>
+                        <p class="message"><span style="color: #ff9999;" class="name">KSCS</span>You aren't logged in. <a style="color: #ff9999;" href="/login">Click here to go to the login page.</a></p>
+                    <% } %>
+                </div>
             </container>
             <container class="input">
                 <input id="input" type="text">

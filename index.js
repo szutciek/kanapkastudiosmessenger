@@ -31,13 +31,6 @@ Messenger.setGetRoute(app, '/chat/data', async (req, res) => {
     else sendError("Couldn't find chats...");
 });
 
-Messenger.setGetRoute(app, '/chat/:chatid', async (req, res) => {
-    const chat = await UserDB.getChatData(req.params.chatid);
-    if (chat !== undefined)
-        res.send(chat);
-    else res.send({ error: "Chat not found" });
-});
-
 Messenger.setGetRoute(app, '/chat', (req, res) => {
     res.render('pages/chat', { isLoggedIn: req.session.user !== undefined });
 });
@@ -49,18 +42,87 @@ Messenger.setPostRoute(app, '/chat/create', async (req, res) => {
     }
 
     if (req.session.user === undefined) return sendError("You must be logged in to create a new chat.");
+
+    if (req.session.user.score == 0) return sendError("This feature is currently locked to administrators only.");
+
     if (req.body !== undefined) {
         console.log(req.body);
         if (req.body.chatname === undefined) return sendError("Chat name is missing...");
         if (req.body.chatname.length <= 3 && req.body.chatname.length >= 20) return sendError("Chat name is too long.");
 
         const chat = await UserDB.createChat(req.session.user.username, req.body.chatname);
-        if (chat){
+        if (chat) {
             res.send({ chat_id: chat[0], chatname: chat[1] });
             console.log(chat);
         }
         else sendError("Internal error when creating a chat.");
     }
+});
+
+Messenger.setPostRoute(app, '/chat/delete', async (req, res) => {
+    const sendError = (msg) => {
+        console.log(msg);
+        res.send({ error: msg });
+    }
+
+    if (req.session.user === undefined) return sendError("You must be logged in to create a new chat.");
+
+    if (req.body === undefined) return sendError("Missing body.");
+
+    if (req.body.chat_id === undefined) return sendError("Chat id missing.");
+
+    const chat = await UserDB.getChatData(req.body.chat_id);
+
+    if (chat) {
+        if (chat.owner !== req.session.user.username) return sendError("Only the owner of the chat can delete the chat.");
+        
+        const participants = JSON.parse(chat.participants).participants;
+        
+        for (let i = 0; i < participants.length; i++) {
+            const element = participants[i];
+            wss.stateupdate(element, "deleted_chat", { chat_id: chat.chat_id });
+            await UserDB.removeUserPermission(chat.chat_id, element);
+        }
+
+        await UserDB.deleteChat(chat.chat_id);
+    }
+    else return sendError("Chat not found.");
+});
+
+Messenger.setPostRoute(app, '/chat/add', async (req, res) => {
+    const sendError = (msg) => {
+        console.log(msg);
+        res.send({ error: msg });
+    }
+
+    if (req.session.user === undefined) return sendError("You must be logged in.");
+
+    if (req.body === undefined) return sendError("Missing body.");
+
+    console.log(req.body);
+    if (req.body.chat_id === undefined || req.body.username === undefined) return sendError("Missing arguments.");
+
+    const chat = await UserDB.getChatData(req.body.chat_id);
+    const user = await UserDB.getUserData(req.body.username);
+
+    if (!user) {
+        return sendError("User doesn't exist.");
+    }
+    else if (chat) {
+        await UserDB.addUserToChat(chat.chat_id, req.body.username);
+        res.send({ code: 200 });
+    }
+    else {
+        return sendError("Unknown chat.");
+    }
+})
+
+Messenger.setGetRoute(app, '/chat/:chatid', async (req, res) => {
+    const chat = await UserDB.getChatData(req.params.chatid);
+    console.log(chat);
+    if (chat !== undefined)
+        res.send(chat);
+    else res.send({ error: "Chat not found" });
 });
 
 Messenger.setGetRoute(app, '/profile', (req, res) => {

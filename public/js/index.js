@@ -3,7 +3,7 @@ var selected_chat_id;
 const setup = async () => {
     /** @type {WebSocket} */
     var socket;
-    const chatView = document.querySelector('.chatView');
+    const chatView = document.querySelector('.here_append');
     const input_element = document.getElementById('input');
     const send_button = document.getElementById('send');
 
@@ -19,7 +19,9 @@ const setup = async () => {
         if (document.activeElement === input_element) {
             if (ev.key === 'Enter') {
                 console.log(input_element.value);
-                sendMessage(input_element.value);
+                if (input_element.value.length > 0 && input_element.value[0] === '!')
+                    command(input_element.value);
+                else sendMessage(input_element.value);
                 input_element.value = "";
             }
 
@@ -58,10 +60,24 @@ const setup = async () => {
                 const json = JSON.parse(data.data);
 
                 if (json.path === 'message') {
-                    chatView.append(getMessageP(json.username, json.message));
+                    const p = getMessageP(json.username, json.message);
+                    chatView.append(p);
+                    p.scrollIntoView();
                 }
                 else if (json.path === 'error') {
                     displayError(json.error);
+                }
+                else if (json.path === "deleted_chat") {
+                    const chat = document.querySelector(`[data-chat_id=${json.message.chat_id}]`);
+
+                    if (chat) {
+                        if (selected_chat_id === json.message.chat_id) {
+                            clearChatView();
+                            displayError("Your last active chat has been deleted. '" + chat.innerText + "'");
+                            selected_chat_id = undefined;
+                        }
+                        chat.remove();
+                    }
                 }
             }
             catch (e) {
@@ -147,23 +163,51 @@ function CreateChat(chatname, chat_id) {
     chat.innerText = chatname;
     chat.dataset.chat_id = chat_id;
     chat.classList.add("chat");
+    chat.addEventListener('dblclick', (e) => {
+        fetch('/chat/delete', {
+            method: "POST",
+            body: JSON.stringify({
+                chat_id: chat_id
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
+        }).then(value => {
+            value.json().then(json => {
+                console.log(json);
+                if (json.error !== undefined) {
+                    displayError(json.error);
+                }
+                else {
+                    console.log("Removed chat " + chat_id);
+                    chat.remove();
+                }
+            })
+        }).catch(reason => {
+            displayError(reason);
+        });
+    })
     document.querySelector('.chats').append(chat);
     chat.addEventListener('click', (e) => {
-        showChatContent(chat.dataset.chat_id);
+        showChatContent(chat.dataset.chat_id, chat);
     });
-    showChatContent(chat_id);
+    showChatContent(chat_id, chat);
 }
 
-function showChatContent(chat_id) {
+function showChatContent(chat_id, element) {
     fetch('/chat/' + chat_id, {
         method: "GET",
     }).then(value => {
         value.json().then(json => {
+            console.log("Gotchat");
+            console.log(json);
             if (json.error !== undefined) {
                 displayError(json.error);
+                element.remove();
             }
             else {
                 displayChatContent(json);
+                element.scrollIntoView();
             }
         })
     }).catch(reason => {
@@ -196,8 +240,23 @@ function getMessageP(name, message) {
 function getErrorP(error) {
     const name = document.createElement('span');
     name.classList.add('name');
-    name.style.color = 'red';
-    name.innerText = 'Error';
+    name.style.color = '#ff9999';
+    name.innerText = 'KSCS';
+    const p = document.createElement('p');
+    p.appendChild(name);
+    p.classList.add('message');
+    const msg = document.createElement('span');
+    msg.innerText = error;
+    p.appendChild(msg);
+
+    return p;
+}
+
+function getSuccessP(error) {
+    const name = document.createElement('span');
+    name.classList.add('name');
+    name.style.color = '#9999ff';
+    name.innerText = 'KSCS';
     const p = document.createElement('p');
     p.appendChild(name);
     p.classList.add('message');
@@ -211,20 +270,65 @@ function getErrorP(error) {
 function displayChatContent(chat) {
     clearChatView();
     document.getElementById('input').focus();
-    const chatView = document.querySelector('.chatView');
+    const chatView = document.querySelector('.here_append');
     console.log(chat);
-    selected_chat_id = chat.uuid;
+    selected_chat_id = chat.chat_id;
 
-    const messages = JSON.parse(chat.messages);
+    const messages = JSON.parse(chat.messages).messages;
 
     messages.forEach(element => {
         chatView.append(getMessageP(element.username, element.message));
     });
+
+    chatView.lastChild.scrollIntoView();
 }
 
 function clearChatView() {
-    const chatView = document.querySelector('.chatView');
+    const chatView = document.querySelector('.here_append');
     while (chatView.firstChild) {
         chatView.removeChild(chatView.firstChild);
+    }
+}
+
+
+function command(value) {
+    const args = value.split(' ');
+
+    if (args[0] === "!add") {
+        if (selected_chat_id === undefined) {
+            document.querySelector('.here_append').append(getErrorP("No chat selected."));
+        }
+        else if (args.length >= 2) {
+            console.log(args);
+            console.log(JSON.stringify({
+                chat_id: selected_chat_id,
+                username: args[1]
+            }));
+            fetch('/chat/add', {
+                method: "POST",
+                body: JSON.stringify({
+                    chat_id: selected_chat_id,
+                    username: args[1]
+                }),
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            }).then(data => data.json().then(json => {
+                if (json.error !== undefined) {
+                    document.querySelector('.here_append').append(getErrorP(json.error));
+                }
+                else {
+                    document.querySelector('.here_append').append(getSuccessP("User " + args[1] + " added successfully"));
+                }
+            })).catch(error => {
+                document.querySelector('.here_append').append(getErrorP(error));
+            })
+        }
+        else {
+            document.querySelector('.here_append').append(getErrorP("Missing arguments. (!add <user>)"));
+        }
+    }
+    else {
+        document.querySelector('.here_append').append(getErrorP("Unknown command."));
     }
 }

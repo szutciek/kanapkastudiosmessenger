@@ -139,6 +139,13 @@ class MessengerWebSocketServer {
         if (ws !== undefined) ws.send(JSON.stringify({ path: "message", username: message.username, message: message.message }));
         else console.error("WS not found!?");
     }
+
+    stateupdate(username, path, message) {
+        const ws = this.getLinkedUser(username);
+        console.log(username);
+        if (ws !== undefined) ws.send(JSON.stringify({ path: path, message: message }));
+        else console.error("WS not found!?");
+    }
 }
 
 module.exports = { createServer, setGetRoute, setPostRoute, setUses, createWebsocketServer, uuid, resetSessionIfLoggedIn };

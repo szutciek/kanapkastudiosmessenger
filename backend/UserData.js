@@ -26,9 +26,9 @@ class DataStorage {
     async #createTables() {
         await this.#RUN(`CREATE TABLE IF NOT EXISTS users(username TEXT PRIMARY KEY, password TEXT NOT NULL, score INTEGER DEFAULT 0 NOT NULL, lastOnline TEXT);`, []);
 
-        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(chat_id TEXT PRIMARY KEY, chatname TEXT, owner TEXT NOT NULL, messages TEXT, participants TEXT) WITHOUT ROWID;`, [])
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatdata(chat_id TEXT PRIMARY KEY, chatname TEXT, owner TEXT NOT NULL, messages JSON, participants JSON);`, []);
 
-        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatperms(username VARCHAR(37) PRIMARY KEY, chatAccess TEXT DEFAULT '[]');`, [])
+        await this.#RUN(`CREATE TABLE IF NOT EXISTS chatperms(username VARCHAR(37) PRIMARY KEY, chatAccess TEXT DEFAULT '[]');`, []);
 
         console.log("done");
     }
@@ -38,12 +38,12 @@ class DataStorage {
         let values = this.#currentlyOpenChats.values();
         for (const chat in values) {
             const time = now - this.#accessTimes.get(chat.chat_id);
-            if (this.#accessTimes.get(chat.uuid) === undefined) {
+            if (this.#accessTimes.get(chat.chat_id) === undefined) {
                 console.log("chat is not available");
                 continue;
             }
             if (time > 1000 * 60 * 5) {
-                this.saveChat(chat);
+                this.saveChat({ chat_id: chat.chat_id, messages: JSON.parse(chat.messages).messages, participants: JSON.parse(chat.participants).participants });
                 this.#currentlyOpenChats.delete(chat.chat_id);
             }
         }
@@ -79,7 +79,7 @@ class DataStorage {
     async hasPermissionIn(username, chat_id) {
         const chatdata = await this.getChatData(chat_id);
         if (chatdata !== undefined) {
-            const json = JSON.parse(chatdata.participants);
+            const json = JSON.parse(chatdata.participants).participants;
             return json.includes(username);
         }
         return false;
@@ -100,7 +100,7 @@ class DataStorage {
     createChatMessage(wss, username, chat_id, message) {
         console.log("Creating chat message");
         this.getChatData(chat_id).then(chatdata => {
-            const json = JSON.parse(chatdata.messages);
+            const json = JSON.parse(chatdata.messages).messages;
             /**
              * "username": "username",
                 "date": "00/00/0000",
@@ -111,20 +111,25 @@ class DataStorage {
                 date: new Date(Date.now()).toDateString(),
                 message: message
             };
-            json.push(msg);
             console.log(json);
+            json.push(msg);
+
+            if (json.length > 100) {
+                json.splice(0, json.length - 101);
+            }
+
             console.log(chatdata);
 
-            const participants = JSON.parse(chatdata.participants);
+            const participants = JSON.parse(chatdata.participants).participants;
             console.log(participants);
-            console.log(typeof participants);
 
             for (let i = 0; i < participants.length; i++) {
                 const user = participants[i];
                 wss.sendMessage(user, msg);
             }
 
-            chatdata.messages = JSON.stringify(json);
+            chatdata.messages = JSON.stringify({messages: json});
+            this.saveChat({chat_id: chat_id, messages: json, participants: participants });
             console.log("Created chat message");
         });
     }
@@ -150,12 +155,20 @@ class DataStorage {
     }
 
     async createChat(owner, chatname) {
-        const data = [Messenger.uuid(), chatname, owner, "[]", JSON.stringify([owner])];
-        await this.#RUN('INSERT INTO chatdata(chat_id, chatname, owner, messages, participants) VALUES (?, ?, ?, ?, ?)', data);
-        console.log("A");
-        await this.addUserToChat(data[0], owner);
-
+        const data = [Messenger.uuid(), chatname, owner, JSON.stringify({ messages: [] }), JSON.stringify({participants: [owner]})];
+        console.log(data);
+        await this.#RUN('INSERT INTO chatdata (chat_id, chatname, owner, messages, participants) VALUES (?, ?, ?, json(?), json(?))', data);
+        console.log(JSON.stringify([]));
+        await this.addUserPermission(data[0], owner);
+        await this.saveChatAsync({chat_id: data[0], chatname: chatname, owner: owner, messages: [], participants: [owner]});
         return data;
+    }
+
+    async deleteChat(chat_id) {
+        await this.#RUN('DELETE FROM chatdata WHERE chat_id = ?', [chat_id]);
+        this.#currentlyOpenChats.delete(chat_id);
+        this.#accessTimes.delete(chat_id);
+        console.log("Deleted Chat.");
     }
 
     async getUsersChats(user) {
@@ -177,12 +190,12 @@ class DataStorage {
         console.log("finished chat await");
         if (!chat) return;
         console.log("chat exists " + chat);
-        const participants = JSON.parse(chat.participants);
+        const participants = JSON.parse(chat.participants).participants;
         console.log("got participants parsed");
         if (!participants.includes(username))
             participants.push(username);
         console.log("appended user to participants");
-        chat.participants = JSON.stringify(participants);
+        chat.participants = JSON.stringify({ participants: participants });
         console.log("added participants");
         await this.addUserPermission(chat_id, username);
         console.log("added user permission to chat!");
@@ -195,20 +208,45 @@ class DataStorage {
         console.log("created permissions for " + username);
         const chatAccess = await this.getUserPermissions(username);
         console.log("fetched user permissions");
-        if (chatAccess)
+        if (chatAccess !== undefined)
             if (!chatAccess.includes(chat_id))
                 chatAccess.push(chat_id);
+            else {
+                console.log("Already has permissions for " + chat_id);
+            }
         else {
             console.log("user doesn't have permissions??");
         }
-        await this.#RUN('UPDATE chatperms SET chatAccess = ? WHERE username = ?', [JSON.stringify(chatAccess), username]);
+        await this.#RUN('UPDATE chatperms SET chatAccess = json(?) WHERE username = ?', [JSON.stringify(chatAccess), username]);
+        console.log("updated chatperms table.");
+    }
+
+    async removeUserPermission(chat_id, username) {
+        await this.createPermissionsFor(username);
+        console.log("created permissions for " + username);
+        const chatAccess = await this.getUserPermissions(username);
+        console.log("fetched user permissions");
+        if (chatAccess !== undefined) {
+            for (let i = 0; i < chatAccess.length; i++) {
+                if (chatAccess[i] === chat_id) {
+                    console.log("removed " + chatAccess[i] + " for " + username);
+                    chatAccess.splice(i, 1);
+                    break;
+                }
+            }
+        }
+        else {
+            console.log("user doesn't have permissions??");
+        }
+        await this.#RUN('UPDATE chatperms SET chatAccess = json(?) WHERE username = ?', [JSON.stringify(chatAccess), username]);
         console.log("updated chatperms table.");
     }
 
     async getUserPermissions(username) {
         const perms = await this.#GET('SELECT chatAccess FROM chatperms WHERE username = ?', [username]);
         if (perms) {
-            JSON.parse(perms.chatAccess);
+            console.log("Returing permissions for " + username);
+            return JSON.parse(perms.chatAccess);
         }
         else console.error("No permissions...");
     }
@@ -216,7 +254,7 @@ class DataStorage {
     async createPermissionsFor(username) {
         const perms = await this.#GET('SELECT * FROM chatperms WHERE username = ?', [username]);
         if (!perms)
-            await this.#RUN('INSERT INTO chatperms (username, chatAccess) VALUES (?, ?)', [username, JSON.stringify([])]);
+            await this.#RUN('INSERT INTO chatperms (username, chatAccess) VALUES (?, json(?))', [username, JSON.stringify([])]);
         else console.log("User permissions already exist!");
     }
 
@@ -278,25 +316,6 @@ class DataStorage {
         })
     }
 
-    #update(table, name, value, where_name, where_value) {
-        this.#db.run(`UPDATE ${table} SET ${name} = ${value} WHERE ${where_name} = ${where_value};`, (result, err) => {
-            return err === null ? result : err;
-        });
-    }
-
-    #test() {
-        this.#run(`UPDATE users SET password = 'good' WHERE username = 'test'`, (result, err) => {
-            if (err !== null) {
-                console.log(err);
-                return false;
-            }
-            else {
-                console.log("Username and password match.");
-                return result;
-            }
-        });
-    }
-
     cleanup() {
         for (const chat in this.#currentlyOpenChats) {
             this.saveChat(chat);
@@ -308,10 +327,42 @@ class DataStorage {
     saveChat(chat) {
         this.#db.serialize(() => {
             this.#db.run(`UPDATE chatdata
-                SET messages = ?, participants = ?
+                SET messages = json(?), participants = json(?)
                 WHERE chat_id =?
-            `, [JSON.stringify(chat.messages), JSON.stringify(chat.participants), chat.chat_id]);
+            `, [JSON.stringify({messages: chat.messages}), JSON.stringify({participants: chat.participants}), chat.chat_id]);
         });
+    }
+
+    async saveChatAsync(chat) {
+        await new Promise((resolve, reject) => {
+            this.#db.serialize(() => {
+                this.#db.run(`UPDATE chatdata
+                    SET messages = json(?), participants = json(?)
+                    WHERE chat_id =?
+                `, [JSON.stringify({messages: chat.messages}), JSON.stringify({participants: chat.participants}), chat.chat_id], err => {
+                    
+                    if (err) reject(err);
+                    else resolve(true);
+                });
+            });
+        })
+    }
+}
+
+class ChatStorage {
+    /** @type {Database} */
+    #db;
+
+    constructor(path) {
+        this.#db = new Database(path);
+    }
+
+    getChatMessages(chat_id, num) {
+
+    }
+
+    addMessageToChat(chat_id, message) {
+
     }
 }
 

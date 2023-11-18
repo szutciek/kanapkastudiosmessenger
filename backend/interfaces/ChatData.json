@@ -2,6 +2,5 @@
     "name": "ChatName",
     "chat_id": "Chat uuid",
     "owner": "username",
-    "messages": "Json stringified array of chat messages",
     "participants": "Json stringified array of usernames"
 }
