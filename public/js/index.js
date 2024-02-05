@@ -60,9 +60,11 @@ const setup = async () => {
                 const json = JSON.parse(data.data);
 
                 if (json.path === 'message') {
-                    const p = getMessageP(json.username, json.message);
-                    chatView.append(p);
-                    p.scrollIntoView();
+                    if (json.chat_id === selected_chat_id) {
+                        const p = getMessageP(json.username, json.message);
+                        chatView.append(p);
+                        p.scrollIntoView();
+                    }
                 }
                 else if (json.path === 'error') {
                     displayError(json.error);

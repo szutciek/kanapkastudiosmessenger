@@ -126,7 +126,7 @@ class DataStorage {
 
             for (let i = 0; i < participants.length; i++) {
                 const user = participants[i];
-                wss.sendMessage(user, msg);
+                wss.sendMessage(user, chat_id, msg);
             }
 
             chatdata.messages = JSON.stringify({messages: json});
