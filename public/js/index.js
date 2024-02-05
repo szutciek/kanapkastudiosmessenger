@@ -44,7 +44,7 @@ const setup = async () => {
 
     const createSocket = async () => {
         console.log("starting socket");
-        socket = new WebSocket('ws://localhost:7777/ws');
+        socket = new WebSocket('ws://' + location.hostname + ':7777/ws');
 
         socket.onopen = (ev) => {
             console.log("Socket opened.");
@@ -111,10 +111,12 @@ function getChats() {
                 console.error(json.error);
             }
             else {
+                console.log(json.perms)
                 for (let i = 0; i < json.perms.length; i++) {
                     const element = json.perms[i];
                     
-                    CreateChat(element.chatname, element.chat_id);
+                    if (element !== null)
+                        CreateChat(element.chatname, element.chat_id);
                 }
             }
         })
@@ -280,7 +282,8 @@ function displayChatContent(chat) {
         chatView.append(getMessageP(element.username, element.message));
     });
 
-    chatView.lastChild.scrollIntoView();
+    if (chatView.lastChild !== null)
+        chatView.lastChild.scrollIntoView();
 }
 
 function clearChatView() {

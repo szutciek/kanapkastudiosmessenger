@@ -16,7 +16,6 @@ Messenger.setGetRoute(app, '/', (req, res) => {
     res.render('pages/index');
 });
 
-
 Messenger.setGetRoute(app, '/chat/data', async (req, res) => {
     const sendError = (msg) => {
         console.log(msg);
@@ -24,7 +23,7 @@ Messenger.setGetRoute(app, '/chat/data', async (req, res) => {
     }
 
     if (req.session.user === undefined) return sendError("You must be logged in to receive chat information.");
-    
+
     const perms = await UserDB.getUsersChats(req.session.user.username);
     if (perms !== undefined)
         res.send({ perms: perms });
@@ -74,17 +73,27 @@ Messenger.setPostRoute(app, '/chat/delete', async (req, res) => {
     const chat = await UserDB.getChatData(req.body.chat_id);
 
     if (chat) {
-        if (chat.owner !== req.session.user.username) return sendError("Only the owner of the chat can delete the chat.");
-        
-        const participants = JSON.parse(chat.participants).participants;
-        
-        for (let i = 0; i < participants.length; i++) {
-            const element = participants[i];
-            wss.stateupdate(element, "deleted_chat", { chat_id: chat.chat_id });
-            await UserDB.removeUserPermission(chat.chat_id, element);
-        }
+        if (chat.owner !== req.session.user.username) {
+            const participants = JSON.parse(chat.participants).participants;
 
-        await UserDB.deleteChat(chat.chat_id);
+            for (let i = 0; i < participants.length; i++) {
+                if (participants[i] === req.session.user.username) {
+                    wss.stateupdate(participants[i], "deleted_chat", { chat_id: chat.chat_id });
+                    await UserDB.removeUserPermission(chat.chat_id, participants[i]);
+                }
+            }
+        }
+        else {
+            const participants = JSON.parse(chat.participants).participants;
+        
+            for (let i = 0; i < participants.length; i++) {
+                const element = participants[i];
+                wss.stateupdate(element, "deleted_chat", { chat_id: chat.chat_id });
+                await UserDB.removeUserPermission(chat.chat_id, element);
+            }
+
+            await UserDB.deleteChat(chat.chat_id);
+        }
     }
     else return sendError("Chat not found.");
 });

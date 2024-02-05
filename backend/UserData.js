@@ -2,6 +2,7 @@ const { Database } = require('sqlite3');
 const sqlite3 = require('sqlite3').verbose();
 const uuid = require('uuid');
 const Messenger = require('./Messenger.js');
+const crypto = require('crypto');
 
 class DataStorage {
     /** @type {Database} */
