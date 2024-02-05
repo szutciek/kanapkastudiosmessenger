@@ -60,11 +60,9 @@ const setup = async () => {
                 const json = JSON.parse(data.data);
 
                 if (json.path === 'message') {
-                    if (json.chat_id === selected_chat_id) {
-                        const p = getMessageP(json.username, json.message);
-                        chatView.append(p);
-                        p.scrollIntoView();
-                    }
+                    const p = getMessageP(json.username, json.message);
+                    chatView.append(p);
+                    p.scrollIntoView();
                 }
                 else if (json.path === 'error') {
                     displayError(json.error);
@@ -167,6 +165,8 @@ function CreateChat(chatname, chat_id) {
     chat.innerText = chatname;
     chat.dataset.chat_id = chat_id;
     chat.classList.add("chat");
+    const button = document.createElement('button');
+    
     chat.addEventListener('dblclick', (e) => {
         fetch('/chat/delete', {
             method: "POST",
